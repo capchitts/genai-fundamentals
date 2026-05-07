@@ -9,7 +9,9 @@ load_dotenv()
 class TestEnvironment(unittest.TestCase):
 
     skip_env_variable_tests = True
-    skip_openai_test = True
+    #skip_openai_variable_test = True
+    skip_groq_test = True
+    skip_hf_test = True
     skip_neo4j_test = True
 
     def test_env_file_exists(self):
@@ -29,6 +31,20 @@ class TestEnvironment(unittest.TestCase):
 
         self.env_variable_exists('OPENAI_API_KEY')
         TestEnvironment.skip_openai_test = False
+
+    def test_groq_variables(self):
+        if TestEnvironment.skip_env_variable_tests:
+            self.skipTest("Skipping GROQ env variable test")
+
+        self.env_variable_exists('GROQ_API_KEY')
+        TestEnvironment.skip_groq_test = False
+    
+    def test_hf_variables(self):
+        if TestEnvironment.skip_env_variable_tests:
+            self.skipTest("Skipping HF_TOKEN env variable test")
+
+        self.env_variable_exists('HF_TOKEN')
+        TestEnvironment.skip_hf_test = False
 
     def test_neo4j_variables(self):
         if TestEnvironment.skip_env_variable_tests:
@@ -55,6 +71,54 @@ class TestEnvironment(unittest.TestCase):
         self.assertIsNotNone(
             models,
             "OpenAI connection failed. Check the OPENAI_API_KEY key in .env file.")
+
+    def test_groq_connection(self):
+        if TestEnvironment.skip_groq_test:
+            self.skipTest("Skipping Groq test")
+
+        from groq import Groq, AuthenticationError
+
+        groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+
+        try:
+            models = groq_client.models.list()
+
+        except AuthenticationError:
+            models = None
+
+        self.assertIsNotNone(
+            models,
+            "Groq connection failed. Check the GROQ_API_KEY key in .env file."
+        )
+
+    def test_hf_connection(self):
+        if TestEnvironment.skip_hf_test:
+            self.skipTest("Skipping HuggingFace test")
+
+        import os
+        from huggingface_hub import HfApi
+
+        token = os.getenv("HF_TOKEN")
+
+        self.assertIsNotNone(
+            token,
+            "HF_TOKEN not found in environment variables."
+        )
+
+        hf_api = HfApi(token=token)
+
+        try:
+            user_info = hf_api.whoami()
+            # print("HF Connected:", user_info)
+
+        except Exception as e:
+            print("HF ERROR:", str(e))
+            user_info = None
+
+        self.assertIsNotNone(
+            user_info,
+            "HuggingFace connection failed. Check the HF_TOKEN key in .env file."
+        )
 
     def test_neo4j_connection(self):
 
@@ -93,9 +157,12 @@ class TestEnvironment(unittest.TestCase):
 def suite():
     suite = unittest.TestSuite()
     suite.addTest(TestEnvironment('test_env_file_exists'))
-    suite.addTest(TestEnvironment('test_openai_variables'))
+    suite.addTest(TestEnvironment('test_groq_variables'))
+    suite.addTest(TestEnvironment('test_hf_variables'))
     suite.addTest(TestEnvironment('test_neo4j_variables'))
-    suite.addTest(TestEnvironment('test_openai_connection'))
+    # suite.addTest(TestEnvironment('test_openai_connection'))
+    suite.addTest(TestEnvironment('test_groq_connection'))
+    suite.addTest(TestEnvironment('test_hf_connection'))
     suite.addTest(TestEnvironment('test_neo4j_connection'))
     return suite
 

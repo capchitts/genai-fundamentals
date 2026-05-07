@@ -14,7 +14,6 @@ neo4j            ==6.1.0
 neo4j-graphrag   ==1.13.1
 numpy            ==2.4.2
 openai           ==1.109.1
-pip              ==26.0.1
 pydantic         ==2.12.5
 pydantic_core    ==2.41.5
 pypdf            ==6.7.5
