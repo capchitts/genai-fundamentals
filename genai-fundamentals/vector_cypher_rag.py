@@ -1,11 +1,12 @@
 import os
 from dotenv import load_dotenv
-load_dotenv()
-
+from utils import SentenceTransformerEmbedder , GroqLangChainLLM
 from neo4j import GraphDatabase
 from neo4j_graphrag.embeddings.openai import OpenAIEmbeddings
 from neo4j_graphrag.llm import OpenAILLM
 from neo4j_graphrag.generation import GraphRAG
+load_dotenv()
+
 
 # Connect to Neo4j database
 driver = GraphDatabase.driver(
@@ -17,16 +18,34 @@ driver = GraphDatabase.driver(
 )
 
 # Create embedder
-embedder = OpenAIEmbeddings(model="text-embedding-ada-002")
+embedder = SentenceTransformerEmbedder()
 
 # Define retrieval query
-retrieval_query =
+retrieval_query = """
+                    MATCH (node)<-[r:RATED]-()
+                    RETURN 
+                    node.title AS title, node.plot AS plot, score AS similarityScore, 
+                    collect { MATCH (node)-[:IN_GENRE]->(g) RETURN g.name } as genres, 
+                    collect { MATCH (node)<-[:ACTED_IN]->(a) RETURN a.name } as actors, 
+                    avg(r.rating) as userRating
+                    ORDER BY userRating DESC
+                  """
+
+
+from neo4j_graphrag.retrievers import VectorCypherRetriever
 
 # Create retriever
-retriever = 
+retriever = VectorCypherRetriever(
+    driver,
+    neo4j_database=os.getenv("NEO4J_DATABASE"),
+    index_name="moviePlots",
+    embedder=embedder,
+    retrieval_query=retrieval_query,
+)
 
-#  Create the LLM
-llm = OpenAILLM(model_name="gpt-5.2")
+# Create the LLM
+llm = GroqLangChainLLM()
+
 
 # Create GraphRAG pipeline
 rag = GraphRAG(retriever=retriever, llm=llm)
